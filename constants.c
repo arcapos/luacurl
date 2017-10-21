@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2015 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
+ * Copyright (c) 2013 - 2017 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
  * All rights reserved.
  *
  * This source code is the proprietary confidential property of Micro Systems
@@ -287,6 +287,7 @@ struct int_constant curl_int[] = {
 	CURL(INFO_APPCONNECT_TIME),
 	CURL(INFO_CERTINFO),
 	CURL(INFO_CONDITION_UNMET),
+#if CURL_NEWER(7,19,8)
 	CURL(INFO_RTSP_SESSION_ID),
 	CURL(INFO_RTSP_CLIENT_CSEQ),
 	CURL(INFO_RTSP_SERVER_CSEQ),
@@ -294,7 +295,7 @@ struct int_constant curl_int[] = {
 	CURL(INFO_PRIMARY_PORT),
 	CURL(INFO_LOCAL_IP),
 	CURL(INFO_LOCAL_PORT),
-
+#endif
 	/* enum curl_closepolicy*/
 	CURL(CLOSEPOLICY_OLDEST),
 	CURL(CLOSEPOLICY_LEAST_RECENTLY_USED),
