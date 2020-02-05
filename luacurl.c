@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick
+ * Copyright (c) 2013 - 2020 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+ * ARE DISCLAIMED. IN NO EVENT SHALL MICRO SYSTEMS MARC BALMER BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -58,17 +58,10 @@
 #include "luacurl.h"
 #include "multi.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef LUACURL_API
 #define LUACURL_API	extern
 #endif
 
-#if LUA_VERSION_NUM >= 502
-#define lua_strlen lua_rawlen
-#endif
 
 /* Fast set table macro */
 #define FASTLUA_SET_TABLE(context, key, value_type, value) \
@@ -309,8 +302,8 @@ readerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 	lua_call(c->L, 2, 1);
 	readBytes=lua_tostring(c->L, -1);
 	if (readBytes) {
-		memcpy(ptr, readBytes, lua_strlen(c->L, -1));
-		return lua_strlen(c->L, -1);
+		memcpy(ptr, readBytes, lua_rawlen(c->L, -1));
+		return lua_rawlen(c->L, -1);
 	}
 	return 0;
 }
@@ -397,7 +390,7 @@ lcurl_escape(lua_State *L)
 {
 	if (!lua_isnil(L, 1)) {
 		const char *s = luaL_checkstring(L, 1);
-		lua_pushstring(L, curl_escape(s, (int)lua_strlen(L, 1)));
+		lua_pushstring(L, curl_escape(s, (int)lua_rawlen(L, 1)));
 		return 1;
 	} else
 		luaL_argerror(L, 1, "string parameter expected");
@@ -410,7 +403,7 @@ lcurl_unescape(lua_State *L)
 {
 	if (!lua_isnil(L, 1)) {
 		const char *s = luaL_checkstring(L, 1);
-		lua_pushstring(L, curl_unescape(s, (int)lua_strlen(L, 1)));
+		lua_pushstring(L, curl_unescape(s, (int)lua_rawlen(L, 1)));
 		return 1;
 	} else
 		luaL_argerror(L, 1, "string parameter expected");
@@ -964,11 +957,11 @@ static void
 set_info(lua_State *L)
 {
 	LUA_SET_TABLE(L, "_COPYRIGHT", literal,
-	    "(C) 2013 micro systems, (C) 2003-2006 AVIQ Systems AG");
+	    "(C) 2013 - 2020 micro systems, (C) 2003-2006 AVIQ Systems AG");
 	LUA_SET_TABLE(L, "_DESCRIPTION", literal,
 	    "LuaCurl binds the CURL easy interface to Lua");
 	LUA_SET_TABLE(L, "_NAME", literal, "luacurl");
-	LUA_SET_TABLE(L, "_VERSION", literal, "1.1.2");
+	LUA_SET_TABLE(L, "_VERSION", literal, "1.1.3");
 	LUA_SET_TABLE(L, "_CURLVERSION", string, curl_version());
 	LUA_SET_TABLE(L, "_SUPPORTED_CURLVERSION", literal, LIBCURL_VERSION);
 }
@@ -993,13 +986,8 @@ luaopen_curl(lua_State *L)
 
 	curl_global_init(CURL_GLOBAL_ALL);
 	createmeta(L);
-#if LUA_VERSION_NUM >= 502
 	luaL_setfuncs(L, luacurl_easy_meths, 0);
 	luaL_newlib(L, luacurl_funcs);
-#else
-	luaL_openlib(L, 0, luacurl_easy_meths, 0);
-	luaL_openlib(L, LUACURL_LIBNAME, luacurl_funcs, 0);
-#endif
 	set_info(L);
 	for (n = 0; n < num_curl_int(); n++) {
 		lua_pushinteger(L, curl_int[n].value);
@@ -1009,7 +997,3 @@ luaopen_curl(lua_State *L)
 
 	return 1;
 }
-
-#ifdef __cplusplus
-}
-#endif
