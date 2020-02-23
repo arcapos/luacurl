@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
+ * Copyright (c) 2013 - 2020 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
  * All rights reserved.
  *
  * This source code is the proprietary confidential property of Micro Systems
@@ -22,7 +22,7 @@
 #define __LUACURL_H__
 
 #define LUACURL_LIBNAME	"curl"
-#define CURL_METATABLE	"cURL easy handle"
+#define CURL_METATABLE	"CURL easy handle"
 
 #define MAKE_VERSION_NUM(x,y,z) (z + (y << 8) + (x << 16))
 #define CURL_NEWER(x,y,z) (MAKE_VERSION_NUM(x,y,z) <= LIBCURL_VERSION_NUM)

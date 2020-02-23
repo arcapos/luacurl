@@ -58,11 +58,6 @@
 #include "luacurl.h"
 #include "multi.h"
 
-#ifndef LUACURL_API
-#define LUACURL_API	extern
-#endif
-
-
 /* Fast set table macro */
 #define FASTLUA_SET_TABLE(context, key, value_type, value) \
 	lua_pushliteral(context, key); \
@@ -294,7 +289,7 @@ static size_t
 readerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	const char *readBytes;
-	curlT *c = (curlT *)stream;
+	curlT *c = stream;
 
 	lua_rawgeti(c->L, LUA_REGISTRYINDEX, c->freaderRef);
 	pushLuaValueT(c->L, c->rudtype, c->rud);
@@ -311,7 +306,7 @@ readerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 static size_t
 writerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-	curlT *c = (curlT *)stream;
+	curlT *c = stream;
 
 	lua_rawgeti(c->L, LUA_REGISTRYINDEX, c->fwriterRef);
 	pushLuaValueT(c->L, c->wudtype, c->wud);
@@ -324,7 +319,7 @@ static int
 progressCallback(void *clientp, double dltotal, double dlnow, double ultotal,
     double ulnow)
 {
-	curlT *c = (curlT *)clientp;
+	curlT *c = clientp;
 
 	lua_rawgeti(c->L, LUA_REGISTRYINDEX, c->fprogressRef);
 	pushLuaValueT(c->L, c->pudtype, c->pud);
@@ -339,7 +334,7 @@ progressCallback(void *clientp, double dltotal, double dlnow, double ultotal,
 static size_t
 headerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-	curlT *c = (curlT *)stream;
+	curlT *c = stream;
 
 	lua_rawgeti(c->L, LUA_REGISTRYINDEX, c->fheaderRef);
 	pushLuaValueT(c->L, c->hudtype, c->hud);
@@ -352,7 +347,7 @@ headerCallback(void *ptr, size_t size, size_t nmemb, void *stream)
 static curlioerr
 ioctlCallback(CURL *handle, int cmd, void *clientp)
 {
-	curlT *c = (curlT *)clientp;
+	curlT *c = clientp;
 
 	lua_rawgeti(c->L, LUA_REGISTRYINDEX, c->fioctlRef);
 	pushLuaValueT(c->L, c->iudtype, c->iud);
@@ -366,7 +361,7 @@ ioctlCallback(CURL *handle, int cmd, void *clientp)
 static int
 lcurl_easy_init(lua_State *L)
 {
-	curlT *c = (curlT *)lua_newuserdata(L, sizeof(curlT));
+	curlT *c = lua_newuserdata(L, sizeof(curlT));
 
 	c->L = L;
 	c->freaderRef = c->fwriterRef = c->fprogressRef = c->fheaderRef
@@ -410,11 +405,59 @@ lcurl_unescape(lua_State *L)
 	return 0;
 }
 
+static int
+lcurl_easy_escape(lua_State *L)
+{
+	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+	size_t len;
+	const char *buf;
+	char *outbuf;
+
+	buf = luaL_checklstring(L, 2, &len);
+	outbuf = curl_easy_escape(c->curl, buf, len);
+	if (outbuf) {
+		lua_pushstring(L, outbuf);
+		curl_free(outbuf);
+	} else
+		lua_pushnil(L);
+	return 1;
+}
+
+static int
+lcurl_easy_unescape(lua_State *L)
+{
+	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+	size_t len;
+	int outlen;
+	const char *buf;
+	char *outbuf;
+
+	buf = luaL_checklstring(L, 2, &len);
+	outbuf = curl_easy_unescape(c->curl, buf, len, &outlen);
+	if (outbuf) {
+		lua_pushlstring(L, outbuf, outlen);
+		curl_free(outbuf);
+	} else
+		lua_pushnil(L);
+	return 1;
+}
+
+#if CURL_NEWER(7,12,1)
+static int
+lcurl_easy_reset(lua_State *L)
+{
+	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+
+	curl_easy_reset(c->curl);
+	return 0;
+}
+#endif
+
 /* Access curlT object from the Lua stack at specified position  */
 static curlT *
 tocurl(lua_State *L, int cindex)
 {
-	curlT *c =( curlT *)luaL_checkudata(L, cindex, CURL_METATABLE);
+	curlT *c = luaL_checkudata(L, cindex, CURL_METATABLE);
 
 	if (!c)
 		luaL_argerror(L, cindex, "invalid curl object");
@@ -544,8 +587,14 @@ free_slist(lua_State *L, const char **key)
 	lua_pushlightuserdata(L, (void *)key);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	slist = (struct curl_slist *)lua_topointer(L, -1);
-	if (slist)
+
+	if (slist) {
 		curl_slist_free_all(slist);
+
+		lua_pushlightuserdata(L, (void *)key);
+		lua_pushlightuserdata(L, NULL);
+		lua_rawset(L, LUA_REGISTRYINDEX);
+	}
 }
 
 /* after argument number n combine all arguments to the curl type curl_slist */
@@ -856,7 +905,7 @@ lcurl_easy_perform(lua_State* L)
 
 /* Finalizes CURL */
 static int
-lcurl_easy_close(lua_State *L)
+lcurl_easy_cleanup(lua_State *L)
 {
 	curlT *c = tocurl(L, 1);
 
@@ -911,18 +960,87 @@ static int
 lcurl_easy_gc(lua_State *L)
 {
 	curlT *c = (curlT *)luaL_checkudata(L, 1, CURL_METATABLE);
-
 	if (c && c->curl)
 		curl_easy_cleanup(c->curl);
 	return 0;
 }
 
-static const struct luaL_Reg luacurl_easy_meths[] = {
-	{ "close",		lcurl_easy_close },
+static int
+lcurl_version(lua_State *L)
+{
+	lua_pushstring(L, curl_version());
+	return 1;
+}
+
+static int
+lcurl_version_info(lua_State *L)
+{
+	curl_version_info_data *info;
+	int n;
+
+	info = curl_version_info(CURLVERSION_NOW);
+
+	lua_newtable(L);
+	lua_pushinteger(L, info->age);
+	lua_setfield(L, -2, "age");
+
+	if (info->age >= 0) {
+		lua_pushstring(L, info->version);
+		lua_setfield(L, -2, "version");
+		lua_pushinteger(L, info->version_num);
+		lua_setfield(L, -2, "versionNum");
+		lua_pushstring(L, info->host);
+		lua_setfield(L, -2, "host");
+		lua_pushinteger(L, info->features);
+		lua_setfield(L, -2, "features");
+		lua_pushstring(L, info->libz_version);
+		lua_setfield(L, -2, "libzVersion");
+
+		lua_newtable(L);
+		for (n = 0; info->protocols[n]; n++) {
+			lua_pushinteger(L, n + 1);
+			lua_pushstring(L, info->protocols[n]);
+			lua_settable(L, -3);
+		}
+		lua_setfield(L, -2, "protocols");
+	}
+	if (info->age >= 1) {
+		lua_pushstring(L, info->ares);
+		lua_setfield(L, -2, "ares");
+		lua_pushinteger(L, info->ares_num);
+		lua_setfield(L, -2, "aresNum");
+	}
+	if (info->age >= 2) {
+		lua_pushstring(L, info->libidn);
+		lua_setfield(L, -2, "libidn");
+	}
+	if (info->age >= 3) {
+		lua_pushinteger(L, info->iconv_ver_num);
+		lua_setfield(L, -2, "iconvVersion");
+		lua_pushstring(L, info->libssh_version);
+		lua_setfield(L, -2, "libsshVersion");
+	}
+	if (info->age >= 4) {
+		lua_pushinteger(L, info->brotli_ver_num);
+		lua_setfield(L, -2, "brotliVersionNum");
+		lua_pushstring(L, info->brotli_version);
+		lua_setfield(L, -2, "brotliVersion");
+	}
+
+	return 1;
+}
+
+static const struct luaL_Reg luacurl_easy_methods[] = {
+	{ "cleanup",		lcurl_easy_cleanup },
+	{ "close",		lcurl_easy_cleanup },	/* old name */
 	{ "setopt",		lcurl_easy_setopt },
 	{ "perform",		lcurl_easy_perform },
 	{ "getinfo",		lcurl_easy_getinfo },
-	{ "__gc",		lcurl_easy_gc },
+	{ "escape",		lcurl_easy_escape },
+	{ "unescape",		lcurl_easy_unescape },
+#if CURL_NEWER(7,12,1)
+	{ "reset",		lcurl_easy_reset },
+#endif
 	{ NULL,			NULL}
 };
 
@@ -940,31 +1058,10 @@ static const struct luaL_Reg luacurl_funcs[] = {
 	{ "escape",		lcurl_escape },
 	{ "multi",		lcurl_multi_init },
 	{ "unescape",		lcurl_unescape },
+	{ "version",		lcurl_version },
+	{ "versionInfo",	lcurl_version_info },
 	{ NULL,		NULL }
 };
-
-static void
-createmeta(lua_State *L)
-{
-	luaL_newmetatable(L, CURL_METATABLE);
-	lua_pushliteral(L, "__index");
-	lua_pushvalue(L, -2);
-	lua_rawset(L, -3);
-}
-
-/* Assumes the table is on top of the stack. */
-static void
-set_info(lua_State *L)
-{
-	LUA_SET_TABLE(L, "_COPYRIGHT", literal,
-	    "(C) 2013 - 2020 micro systems, (C) 2003-2006 AVIQ Systems AG");
-	LUA_SET_TABLE(L, "_DESCRIPTION", literal,
-	    "LuaCurl binds the CURL easy interface to Lua");
-	LUA_SET_TABLE(L, "_NAME", literal, "luacurl");
-	LUA_SET_TABLE(L, "_VERSION", literal, "1.1.3");
-	LUA_SET_TABLE(L, "_CURLVERSION", string, curl_version());
-	LUA_SET_TABLE(L, "_SUPPORTED_CURLVERSION", literal, LIBCURL_VERSION);
-}
 
 static void
 setcurloptions(lua_State *L)
@@ -979,16 +1076,40 @@ setcurloptions(lua_State *L)
 ALL_CURL_OPT
 }
 
-LUACURL_API int
+int
 luaopen_curl(lua_State *L)
 {
 	int n;
 
 	curl_global_init(CURL_GLOBAL_ALL);
-	createmeta(L);
-	luaL_setfuncs(L, luacurl_easy_meths, 0);
+
+
+	if (luaL_newmetatable(L, CURL_METATABLE)) {
+		luaL_setfuncs(L, luacurl_easy_methods, 0);
+
+		lua_pushliteral(L, "__gc");
+		lua_pushcfunction(L, lcurl_easy_gc);
+		lua_settable(L, -3);
+
+		lua_pushliteral(L, "__index");
+		lua_pushvalue(L, -2);
+		lua_settable(L, -3);
+	}
+	lua_pop(L, 1);
+
 	luaL_newlib(L, luacurl_funcs);
-	set_info(L);
+
+	lua_pushliteral(L, "_COPYRIGHT");
+	lua_pushliteral(L, "Copyright (c) 2013 - 2020 "
+	    "micro systems marc balmer");
+	lua_settable(L, -3);
+	lua_pushliteral(L, "_DESCRIPTION");
+	lua_pushliteral(L,  "CURL for Lua");
+	lua_settable(L, -3);
+	lua_pushliteral(L, "_VERSION");
+	lua_pushliteral(L,  "1.2.0");
+	lua_settable(L, -3);
+
 	for (n = 0; n < num_curl_int(); n++) {
 		lua_pushinteger(L, curl_int[n].value);
 		lua_setfield(L, -2, curl_int[n].name);

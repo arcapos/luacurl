@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2017 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
+ * Copyright (c) 2013 - 2020 Micro Systems Marc Balmer, CH-5073 Gipf-Oberfrick.
  * All rights reserved.
  *
  * This source code is the proprietary confidential property of Micro Systems
@@ -248,6 +248,74 @@ struct int_constant curl_int[] = {
 	CURL_(FORMADD_DISABLED),
 #endif
 
+	/* version info flags */
+#if CURL_NEWER(7,10,0)
+	CURL_(VERSION_LIBZ),
+	CURL_(VERSION_SSL),
+#endif
+#if CURL_NEWER(7,10,6)
+	CURL_(VERSION_DEBUG),
+	CURL_(VERSION_GSSNEGOTIATE),
+	CURL_(VERSION_NTLM),
+#endif
+#if CURL_NEWER(7,10,7)
+	CURL_(VERSION_ASYNCHDNS),
+#endif
+#if CURL_NEWER(7,10,8)
+	CURL_(VERSION_SPNEGO),
+#endif
+#if CURL_NEWER(7,11,1)
+	CURL_(VERSION_LARGEFILE),
+#endif
+#if CURL_NEWER(7,12,0)
+	CURL_(VERSION_IDN),
+#endif
+#if CURL_NEWER(7,13,2)
+	CURL_(VERSION_SSPI),
+#endif
+#if CURL_NEWER(7,15,4)
+	CURL_(VERSION_CONV),
+#endif
+#if CURL_NEWER(7,19,6)
+	CURL_(VERSION_CURLDEBUG),
+#endif
+#if CURL_NEWER(7,21,4)
+	CURL_(VERSION_TLSAUTH_SRP),
+#endif
+#if CURL_NEWER(7,22,0)
+	CURL_(VERSION_NTLM_WB),
+#endif
+#if CURL_NEWER(7,33,0)
+	CURL_(VERSION_HTTP2),
+#endif
+#if CURL_NEWER(7,38,0)
+	CURL_(VERSION_GSSAPI),
+#endif
+#if CURL_NEWER(7,40,0)
+	CURL_(VERSION_KERBEROS5),
+	CURL_(VERSION_UNIX_SOCKETS),
+#endif
+#if CURL_NEWER(7,47,0)
+	CURL_(VERSION_PSL),
+#endif
+#if CURL_NEWER(7,52,0)
+	CURL_(VERSION_HTTPS_PROXY),
+#endif
+#if CURL_NEWER(7,56,0)
+	CURL_(VERSION_MULTI_SSL),
+#endif
+#if CURL_NEWER(7,57,0)
+	CURL_(VERSION_BROTLI),
+#endif
+#if CURL_NEWER(7,64,1)
+	CURL_(VERSION_ATSVC),
+#endif
+#if CURL_NEWER(7,66,1)
+	CURL_(VERSION_HTTP3),
+#endif
+	CURL_(VERSION_IPV6),
+	CURL_(VERSION_KERBEROS4),
+
 	/* INFO */
 	CURL(INFO_NONE),
 	CURL(INFO_EFFECTIVE_URL),
@@ -307,6 +375,10 @@ struct int_constant curl_int[] = {
 	CURL(VERSION_SECOND),
 	CURL(VERSION_THIRD),
 	CURL(VERSION_FOURTH),
+	CURL(VERSION_FIFTH),
+#if CURL_NEWER(7,66,0)
+	CURL(VERSION_SIXTH),
+#endif
 	CURL(VERSION_NOW)
 };
 
@@ -318,4 +390,3 @@ num_curl_int(void)
 {
 	return sizeof(curl_int)/sizeof(curl_int[0]);
 }
-
