@@ -375,7 +375,9 @@ struct int_constant curl_int[] = {
 	CURL(VERSION_SECOND),
 	CURL(VERSION_THIRD),
 	CURL(VERSION_FOURTH),
+#ifdef CURLVERSION_FIFTH
 	CURL(VERSION_FIFTH),
+#endif
 #if CURL_NEWER(7,66,0)
 	CURL(VERSION_SIXTH),
 #endif
