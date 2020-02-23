@@ -308,7 +308,7 @@ struct int_constant curl_int[] = {
 	CURL_(VERSION_BROTLI),
 #endif
 #if CURL_NEWER(7,64,1)
-	CURL_(VERSION_ATSVC),
+	CURL_(VERSION_ALTSVC),
 #endif
 #if CURL_NEWER(7,66,1)
 	CURL_(VERSION_HTTP3),
