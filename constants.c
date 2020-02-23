@@ -384,9 +384,6 @@ struct int_constant curl_int[] = {
 	CURL(VERSION_NOW)
 };
 
-struct str_constant curl_str_constants[] = {
-};
-
 size_t
 num_curl_int(void)
 {
