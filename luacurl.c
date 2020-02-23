@@ -1014,19 +1014,22 @@ lcurl_version_info(lua_State *L)
 		lua_pushstring(L, info->libidn);
 		lua_setfield(L, -2, "libidn");
 	}
+#if CURL_NEWER(7,16,1)
 	if (info->age >= 3) {
 		lua_pushinteger(L, info->iconv_ver_num);
 		lua_setfield(L, -2, "iconvVersion");
 		lua_pushstring(L, info->libssh_version);
 		lua_setfield(L, -2, "libsshVersion");
 	}
+#endif
+#if CURL_NEWER(7,57,0)
 	if (info->age >= 4) {
 		lua_pushinteger(L, info->brotli_ver_num);
 		lua_setfield(L, -2, "brotliVersionNum");
 		lua_pushstring(L, info->brotli_version);
 		lua_setfield(L, -2, "brotliVersion");
 	}
-
+#endif
 	return 1;
 }
 
