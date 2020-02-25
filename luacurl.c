@@ -374,7 +374,7 @@ lcurl_easy_init(lua_State *L)
 	c->curl = curl_easy_init();
 
 	/* set metatable to curlT object */
-	luaL_getmetatable(L, CURL_METATABLE);
+	luaL_getmetatable(L, CURL_EASY_METATABLE);
 	lua_setmetatable(L, -2);
 	return 1;
 }
@@ -408,7 +408,7 @@ lcurl_unescape(lua_State *L)
 static int
 lcurl_easy_escape(lua_State *L)
 {
-	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+	curlT *c = luaL_checkudata(L, 1, CURL_EASY_METATABLE);
 	size_t len;
 	const char *buf;
 	char *outbuf;
@@ -426,7 +426,7 @@ lcurl_easy_escape(lua_State *L)
 static int
 lcurl_easy_unescape(lua_State *L)
 {
-	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+	curlT *c = luaL_checkudata(L, 1, CURL_EASY_METATABLE);
 	size_t len;
 	int outlen;
 	const char *buf;
@@ -446,7 +446,7 @@ lcurl_easy_unescape(lua_State *L)
 static int
 lcurl_easy_reset(lua_State *L)
 {
-	curlT *c = luaL_checkudata(L, 1, CURL_METATABLE);
+	curlT *c = luaL_checkudata(L, 1, CURL_EASY_METATABLE);
 
 	curl_easy_reset(c->curl);
 	return 0;
@@ -457,7 +457,7 @@ lcurl_easy_reset(lua_State *L)
 static curlT *
 tocurl(lua_State *L, int cindex)
 {
-	curlT *c = luaL_checkudata(L, cindex, CURL_METATABLE);
+	curlT *c = luaL_checkudata(L, cindex, CURL_EASY_METATABLE);
 
 	if (!c)
 		luaL_argerror(L, cindex, "invalid curl object");
@@ -959,7 +959,7 @@ lcurl_easy_cleanup(lua_State *L)
 static int
 lcurl_easy_gc(lua_State *L)
 {
-	curlT *c = (curlT *)luaL_checkudata(L, 1, CURL_METATABLE);
+	curlT *c = (curlT *)luaL_checkudata(L, 1, CURL_EASY_METATABLE);
 	if (c && c->curl)
 		curl_easy_cleanup(c->curl);
 	return 0;
@@ -1047,12 +1047,12 @@ static const struct luaL_Reg luacurl_easy_methods[] = {
 	{ NULL,			NULL}
 };
 
-static const struct luaL_Reg luacurl_multi_meths[] = {
+static const struct luaL_Reg luacurl_multi_methods[] = {
 	{ "add_handle",		lcurl_multi_add_handle },
 	{ "fds",		lcurl_multi_fds },
 	{ "remove_handle",	lcurl_multi_remove_handle },
 	{ "perform",		lcurl_multi_perform },
-	{ "__gc",		lcurl_multi_gc },
+	{ "timeout",		lcurl_multi_timeout },
 	{ NULL,			NULL }
 };
 
@@ -1086,12 +1086,24 @@ luaopen_curl(lua_State *L)
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
-
-	if (luaL_newmetatable(L, CURL_METATABLE)) {
+	if (luaL_newmetatable(L, CURL_EASY_METATABLE)) {
 		luaL_setfuncs(L, luacurl_easy_methods, 0);
 
 		lua_pushliteral(L, "__gc");
 		lua_pushcfunction(L, lcurl_easy_gc);
+		lua_settable(L, -3);
+
+		lua_pushliteral(L, "__index");
+		lua_pushvalue(L, -2);
+		lua_settable(L, -3);
+	}
+	lua_pop(L, 1);
+
+	if (luaL_newmetatable(L, CURL_MULTI_METATABLE)) {
+		luaL_setfuncs(L, luacurl_multi_methods, 0);
+
+		lua_pushliteral(L, "__gc");
+		lua_pushcfunction(L, lcurl_multi_gc);
 		lua_settable(L, -3);
 
 		lua_pushliteral(L, "__index");
